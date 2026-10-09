@@ -1,53 +1,64 @@
 const { chromium } = require('playwright');
 
 (async () => {
-  console.log('🚀 Memulai Keep-Alive Stealth Browser...');
+  console.log('🚀 Memulai Keep-Alive Stealth Browser (Bulletproof Mode)...');
   
-  try {
-    const browser = await chromium.launch({
-      headless: true, // Diperbaiki: menggunakan boolean true, bukan string "new"
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-blink-features=AutomationControlled', // Mencegah deteksi bot
-        '--disable-dev-shm-usage',
-        '--disable-gpu'
-      ]
-    });
+  const url = 'https://hermes-agent.mark.blitz.cloud/';
+  let attempts = 0;
+  const maxAttempts = 3; // Akan mencoba maksimal 3 kali jika gagal
+  
+  while (attempts < maxAttempts) {
+    attempts++;
+    let browser;
     
-    const context = await browser.newContext({
-      userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-      viewport: { width: 1366, height: 768 },
-      locale: 'id-ID',
-      timezoneId: 'Asia/Jakarta'
-    });
+    try {
+      console.log(`\n🔄 Percobaan ke-${attempts}...`);
+      
+      browser = await chromium.launch({
+        headless: true,
+        args: [
+          '--no-sandbox',
+          '--disable-setuid-sandbox',
+          '--disable-blink-features=AutomationControlled',
+          '--disable-dev-shm-usage'
+        ]
+      });
+      
+      const context = await browser.newContext({
+        userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+        viewport: { width: 1366, height: 768 },
+        locale: 'id-ID',
+        timezoneId: 'Asia/Jakarta'
+      });
 
-    const page = await context.newPage();
+      const page = await context.newPage();
 
-    // Suntikkan properti anti-deteksi bot ke dalam window browser
-    await page.addInitScript(() => {
-      Object.defineProperty(navigator, 'webdriver', { get: () => false });
-      window.chrome = { runtime: {}, loadTimes: function() {}, csi: function() {}, app: {} };
-      Object.defineProperty(navigator, 'plugins', { get: () => [1, 2, 3, 4, 5] });
-      Object.defineProperty(navigator, 'languages', { get: () => ['id-ID', 'en-US', 'en'] });
-    });
+      await page.addInitScript(() => {
+        Object.defineProperty(navigator, 'webdriver', { get: () => false });
+        window.chrome = { runtime: {}, loadTimes: function() {}, csi: function() {}, app: {} };
+      });
 
-    const url = 'https://hermes-agent.mark.blitz.cloud/';
-    console.log(`🌐 Membuka: ${url}`);
+      await page.goto(url, { waitUntil: 'networkidle', timeout: 60000 });
+      await page.evaluate(() => window.scrollBy(0, 400));
+      await new Promise(r => setTimeout(r, 2000));
 
-    // Buka halaman dan tunggu sampai semua JS background selesai
-    await page.goto(url, { waitUntil: 'networkidle', timeout: 60000 });
-    
-    // Simulasi manusia: scroll ke bawah sedikit
-    await page.evaluate(() => window.scrollBy(0, 400));
-    
-    // Tunggu 2 detik agar server mencatat aktivitas
-    await new Promise(r => setTimeout(r, 2000));
-
-    console.log(`✅ Sukses! Status halaman: ${page.url()}`);
-    await browser.close();
-  } catch (error) {
-    console.error('❌ Gagal:', error.message);
-    process.exit(1); // Keluar dengan error agar GitHub Actions menandai sebagai "Failed"
+      console.log(`✅ SUKSES di percobaan ke-${attempts}! Status: ${page.url()}`);
+      await browser.close();
+      
+      // Jika berhasil, hentikan loop (break)
+      process.exit(0); 
+      
+    } catch (error) {
+      console.error(`❌ Percobaan ke-${attempts} Gagal: ${error.message}`);
+      if (browser) await browser.close();
+      
+      if (attempts < maxAttempts) {
+        console.log('⏳ Menunggu 5 detik sebelum mencoba lagi...');
+        await new Promise(r => setTimeout(r, 5000));
+      } else {
+        console.error('💀 Semua percobaan gagal. Workflow akan ditandai sebagai Failed.');
+        process.exit(1);
+      }
+    }
   }
 })();
