@@ -29,7 +29,8 @@ jobs:
       - name: Install Dependencies
         run: |
           npm init -y
-          npm install playwright
+          # Kunci versi Playwright agar tidak berubah tiba-tiba di masa depan
+          npm install playwright@1.48.0 
           npx playwright install chromium --with-deps
 
       - name: Jalankan Stealth Browser
