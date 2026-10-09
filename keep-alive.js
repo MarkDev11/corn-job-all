@@ -5,12 +5,13 @@ const { chromium } = require('playwright');
   
   try {
     const browser = await chromium.launch({
-      headless: "new",
+      headless: true, // Diperbaiki: menggunakan boolean true, bukan string "new"
       args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',
-        '--disable-blink-features=AutomationControlled',
-        '--disable-dev-shm-usage'
+        '--disable-blink-features=AutomationControlled', // Mencegah deteksi bot
+        '--disable-dev-shm-usage',
+        '--disable-gpu'
       ]
     });
     
@@ -23,17 +24,19 @@ const { chromium } = require('playwright');
 
     const page = await context.newPage();
 
-    // Suntikkan properti anti-deteksi bot
+    // Suntikkan properti anti-deteksi bot ke dalam window browser
     await page.addInitScript(() => {
       Object.defineProperty(navigator, 'webdriver', { get: () => false });
       window.chrome = { runtime: {}, loadTimes: function() {}, csi: function() {}, app: {} };
+      Object.defineProperty(navigator, 'plugins', { get: () => [1, 2, 3, 4, 5] });
+      Object.defineProperty(navigator, 'languages', { get: () => ['id-ID', 'en-US', 'en'] });
     });
 
     const url = 'https://hermes-agent.mark.blitz.cloud/';
     console.log(`🌐 Membuka: ${url}`);
 
     // Buka halaman dan tunggu sampai semua JS background selesai
-    await page.goto(url, { waitUntil: 'networkidle', timeout: 30000 });
+    await page.goto(url, { waitUntil: 'networkidle', timeout: 60000 });
     
     // Simulasi manusia: scroll ke bawah sedikit
     await page.evaluate(() => window.scrollBy(0, 400));
