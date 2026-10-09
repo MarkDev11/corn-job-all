@@ -7,6 +7,7 @@ const { chromium } = require('playwright');
 const WEBSITES = [
   'https://hermes-agent.mark.blitz.cloud/',
   'https://fayln-api.marky.blitz.cloud/',
+  'https://qwen2api.mark.blitz.cloud/',
   // Tambahkan website lain di bawah ini, contoh:
   // 'https://website-ketiga.com/',
   // 'https://website-keempat.com/',
